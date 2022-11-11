@@ -131,7 +131,7 @@ function defineParser (input) {
   const expression = next(input)
   input = pop(input)
   GE[variable] = evaluator(expression)
-  return '${variable} defined'
+  return `${variable} defined`
 }
 function lambdaParser (input) {
 /*   input = input.trim()
@@ -146,7 +146,14 @@ function quoteParser (input) {
   return datum
 }
 function setParser (input) {
-
+  const symbol = next(input)
+  input = pop(input)
+  const expression = next(input)
+  input = pop(input)
+  if (GE[symbol] === undefined) { console.log('can\'t set undefined variable') }
+  GE[symbol] = evaluator(expression)
+  // console.log(GE)
+  return `${symbol} Set`
 }
 function beginParser (input) {
 
@@ -156,7 +163,7 @@ function beginParser (input) {
 // console.log(atomEval(input, GE))
 console.log(evaluator(input)) */
 
-// ______________________________Math Cases_______________________________
+/* // ______________________________Math Cases_______________________________
 console.log('Math')
 console.log(evaluator('-5 ') === -5)
 console.log(evaluator('pi') === 3.141592653589793)
@@ -174,13 +181,17 @@ console.log(evaluator('( if (> 30 45) (+ 1 1) "failedOutput")') === '"failedOutp
 console.log(evaluator('(if (= 12 12) (+ 78 2) 9)') === 80)
 console.log(evaluator('(if #f 1 0)') === 0)
 console.log(evaluator('(if #t "abc" 1)') === '"abc"')
-
+ */
 // ____________________________define____________________________________
 console.log('Define')
 console.log(evaluator('(define a 90)'))
+console.log(evaluator('a'))
+console.log(evaluator('(set! a 100)'))
+console.log(evaluator('a'))
+console.log(GE.a)
 console.log(evaluator('(define x (+ 5 5))'))
 
-// _____________________________________quote____________________________________
+/* // _____________________________________quote____________________________________
 console.log('Quote')
 console.log(evaluator('(quote (a b c))') === '(a b c)')
-console.log(evaluator('(quote (+ 1 2)) ') === '(+ 1 2)')
+console.log(evaluator('(quote (+ 1 2)) ') === '(+ 1 2)') */
