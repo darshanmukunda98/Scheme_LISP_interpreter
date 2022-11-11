@@ -133,14 +133,14 @@ function defineParser (input) {
   GE[variable] = evaluator(expression)
   return '${variable} defined'
 }
-/* function lambdaParser (input) {
-  input = input.trim()
+function lambdaParser (input) {
+/*   input = input.trim()
   if (input[0] !== '(') { return null }
   const args = next(input)
   input = pop(input)
   const exp = next(input)
-  input = pop(input)
-} */
+  input = pop(input) */
+}
 function quoteParser (input) {
   const datum = atomEval("\'" + next(input))
   return datum
@@ -152,11 +152,11 @@ function beginParser (input) {
 
 }
 
-const input = process.argv[2]
+/* const input = process.argv[2]
 // console.log(atomEval(input, GE))
-console.log(evaluator(input))
+console.log(evaluator(input)) */
 
-/* // ______________________________Math Cases_______________________________
+// ______________________________Math Cases_______________________________
 console.log('Math')
 console.log(evaluator('-5 ') === -5)
 console.log(evaluator('pi') === 3.141592653589793)
@@ -183,4 +183,4 @@ console.log(evaluator('(define x (+ 5 5))'))
 // _____________________________________quote____________________________________
 console.log('Quote')
 console.log(evaluator('(quote (a b c))') === '(a b c)')
-console.log(evaluator('(quote (+ 1 2)) ') === '(+ 1 2)') */
+console.log(evaluator('(quote (+ 1 2)) ') === '(+ 1 2)')
