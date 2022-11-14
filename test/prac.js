@@ -4,11 +4,11 @@ const GE = {
   true: true,
   false: false,
   pi: Math.PI,
-  sqrt: (...arg) => Math.sqrt(arg),
-  '=': function (x, y) { return eval(x + ' ' + '===' + ' ' + y) }
+  sqrt: (args) => Math.sqrt(args),
+  '=': function (args) { return args.reduce((x, y) => eval(x + ' ' + '===' + ' ' + y)) }
 }
 const binaryops = ['+', '-', '*', '/', '>', '<', '>=', '<='].forEach(function (op) {
-  GE[op] = function (x, y) { return eval(x + ' ' + op + ' ' + y) }
+  GE[op] = function (args) { return args.reduce((x, y) => eval(x + ' ' + op + ' ' + y)) }
 })
 
 const specialForms = {
@@ -32,22 +32,22 @@ function nextClosingBracket (input) {
 }
 const pop = (input) => {
   input = input.trim()
+  if (input.startsWith('(')) return input.slice(nextClosingBracket(input) + 1)
   if (input.includes(' ') && !input.startsWith('(')) {
     return input.slice(input.indexOf(' '))
   } else {
     // return input.slice(input.indexOf(')') + 1)
     if (input.endsWith(')') && !input.startsWith('(')) return input.slice(input.indexOf(')'))
-    return input.slice(nextClosingBracket(input) + 1)
   }
 }
 const next = (input) => {
   input = input.trim()
+  if (input.startsWith('(')) return input.substring(0, nextClosingBracket(input) + 1)
   if (input.includes(' ') && !input.startsWith('(')) {
     return input.substring(0, input.indexOf(' '))
   } else {
     // return input.substring(0, input.indexOf(')') + 1)
     if (input.endsWith(')') && !input.startsWith('(')) return input.substring(0, input.indexOf(')'))
-    return input.substring(0, nextClosingBracket(input) + 1)
   }
 }
 
@@ -64,9 +64,10 @@ function symbolEval (atom, GE) { // ignored symbol validation
 
 // stringEval
 function stringEval (atom) {
-  const mached = atom.match(/".*"/) // ignored string validation  [\w!$%&*/:<=?>~_^+-/*#]+[\w\d]*
-  if (mached) { return mached[0] }
-  return null
+  const matched = atom.match(/".*"/) // ignored string validation  [\w!$%&*/:<=?>~_^+-/*#]+[\w\d]*
+  if (!matched[0]) { return null }
+
+  return matched[0]
 }
 
 // atomEval
@@ -86,13 +87,11 @@ function expressionEval (input) {
   input = pop(input)
   // if (symbolEval(sym, GE) === null) return null
   if (specialForms[sym]) { return specialForms[sym](input) }
-  if (sym[0] === '(') {
-    op = expressionEval(sym, GE)
-    return op
-  }
-  if (atomEval(sym) === null) return null
 
-  while (input) {
+  if (atomEval(sym) === null) return null
+  input = input.trim()
+  const argsArr = getArgs(input).map(arg => evaluator(arg))
+  /* while (input) {
     input = input.trim()
     if (input[0] === '(') {
       args.push(atomEval(expressionEval(input.substring(0, nextClosingBracket(input) + 1))))
@@ -103,14 +102,38 @@ function expressionEval (input) {
     }
     input = input.trim()
     if (!input.includes(' ')) { if (input[0] === ')') break }
-  }
+  } */
   if (!input.endsWith(')')) return null
   input = input.slice(1)
-  return args.reduce(GE[sym])
+  if (sym[0] === '(') {
+    const op = expressionEval(sym, GE)
+    return op(...argsArr)
+  }
+  // console.log(argsArr)
+  return GE[sym](argsArr)
+  /* return args.reduce(GE[sym]) */
 }
 function evaluator (expression) {
   if (expression[0] === '(') { return expressionEval(expression) }
   return atomEval(expression)
+}
+
+function getArgs (input) {
+  const argsArr = []
+  while (input) {
+    input = input.trim()
+    if (input[0] === '(') {
+      argsArr.push(/* atomEval( */ expressionEval(input.substring(0, nextClosingBracket(input) + 1)))/* ) */
+      input = input.substring(nextClosingBracket(input) + 1)
+    } else {
+      argsArr.push(atomEval(next(input)))
+      input = pop(input)
+    }
+    input = input.trim()
+    if (!input.includes(' ')) { if (input[0] === ')') break }
+  }
+
+  return argsArr
 }
 
 function ifParser (input) {
@@ -139,7 +162,9 @@ function lambdaParser (input) {
   const args = next(input)
   input = pop(input)
   const exp = next(input)
-  input = pop(input) */
+  input = pop(input)
+
+  */
 }
 function quoteParser (input) {
   const datum = atomEval("\'" + next(input))
@@ -159,16 +184,16 @@ function beginParser (input) {
 
 }
 
-/* const input = process.argv[2]
-// console.log(atomEval(input, GE))
-console.log(evaluator(input)) */
+const input = process.argv[2]
+console.log(evaluator(input))
+// console.log(atomEval(input))
 
 /* // ______________________________Math Cases_______________________________
 console.log('Math')
 console.log(evaluator('-5 ') === -5)
 console.log(evaluator('pi') === 3.141592653589793)
 console.log(evaluator('-5') === -5)
-// console.log(main('(sqrt (/ 8 2))') === 2)
+console.log(evaluator('(sqrt (/ 8 2))') === 2)
 console.log(evaluator('(* (/ 1 2) 3)') === 1.5)
 console.log(evaluator('(+ 1 (+ 2 3))') === 6)
 console.log(evaluator('( + ( + ( + 9 (+ 2 2)) 2) ( + 3 4) )') === 22)
@@ -178,10 +203,10 @@ console.log(evaluator('(* 5 10)') === 50)
 // _____________________________________if_______________________________
 console.log('If')
 console.log(evaluator('( if (> 30 45) (+ 1 1) "failedOutput")') === '"failedOutput"')
-console.log(evaluator('(if (= 12 12) (+ 78 2) 9)') === 80)
+console.log(evaluator('(if (= 12 12) (+ 78 2) 9)'))
 console.log(evaluator('(if #f 1 0)') === 0)
 console.log(evaluator('(if #t "abc" 1)') === '"abc"')
- */
+
 // ____________________________define____________________________________
 console.log('Define')
 console.log(evaluator('(define a 90)'))
@@ -191,7 +216,8 @@ console.log(evaluator('a'))
 console.log(GE.a)
 console.log(evaluator('(define x (+ 5 5))'))
 
-/* // _____________________________________quote____________________________________
+// _____________________________________quote____________________________________
 console.log('Quote')
-console.log(evaluator('(quote (a b c))') === '(a b c)')
-console.log(evaluator('(quote (+ 1 2)) ') === '(+ 1 2)') */
+console.log(evaluator('(quote (a b c))'))
+console.log(evaluator('(quote (+ 1 2)) '))
+ */
