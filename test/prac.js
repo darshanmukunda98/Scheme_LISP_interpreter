@@ -154,7 +154,7 @@ function defineParser (input) {
   const expression = next(input)
   input = pop(input)
   GE[variable] = evaluator(expression)
-  return `${variable} defined`
+  console.log(`${variable} defined`)
 }
 function lambdaParser (input) {
 /*   input = input.trim()
@@ -178,10 +178,13 @@ function setParser (input) {
   if (GE[symbol] === undefined) { console.log('can\'t set undefined variable') }
   GE[symbol] = evaluator(expression)
   // console.log(GE)
-  return `${symbol} Set`
+  console.log(`${symbol} Set`)
 }
 function beginParser (input) {
+  const argsArr = getArgs(input)
 
+  // argsArr.slice(0, argsArr.length - 1).forEach(arg => expressionEval(arg))
+  return /* expressionEval( */argsArr[argsArr.length - 1]/* ) */
 }
 
 const input = process.argv[2]
@@ -199,6 +202,7 @@ console.log(evaluator('(+ 1 (+ 2 3))') === 6)
 console.log(evaluator('( + ( + ( + 9 (+ 2 2)) 2) ( + 3 4) )') === 22)
 console.log(evaluator('(+ (+ 1 (- 1 1)) 1)') === 2)
 console.log(evaluator('(* 5 10)') === 50)
+console.log(evaluator('( * 1 2 ( / 10 4 2 ) ( + 6 5 ( - 1 2 3 ) ) ( + 2 3 ) )')=== 87.5)
 
 // _____________________________________if_______________________________
 console.log('If')
@@ -220,4 +224,10 @@ console.log(evaluator('(define x (+ 5 5))'))
 console.log('Quote')
 console.log(evaluator('(quote (a b c))'))
 console.log(evaluator('(quote (+ 1 2)) '))
+
+// _________________________begin__________________________________________
+
+console.log('Begin')
+console.log(evaluator('(begin (define r 10) (* pi (* r r)))')===314.1592653589793)
+console.log(evaluator('(begin (define r 10) (* pi (* r r)) (define a 100) (+ a a) 5)')===5)
  */
