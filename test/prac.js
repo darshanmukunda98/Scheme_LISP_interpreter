@@ -58,6 +58,7 @@ function numberEval (atom) { // ignored number validation
 
 // symbolEval
 function symbolEval (atom, GE) { // ignored symbol validation
+  // if (atom === 'x')console.log(GE)
   if (GE[atom] === undefined) { return null }
   return GE[atom]
 }
@@ -65,6 +66,7 @@ function symbolEval (atom, GE) { // ignored symbol validation
 // stringEval
 function stringEval (atom) {
   const matched = atom.match(/".*"/) // ignored string validation  [\w!$%&*/:<=?>~_^+-/*#]+[\w\d]*
+  // if (matched === null) console.log(atom)
   if (!matched[0]) { return null }
 
   return matched[0]
@@ -79,18 +81,18 @@ function atomEval (atom, GE) {
 }
 
 function expressionEval (input, GE) {
-  const args = []
+  // console.log(GE)
   if (!input.startsWith('(')) return null
   input = input.slice(1)
 
   const sym = next(input)
   input = pop(input)
   // if (symbolEval(sym, GE) === null) return null
-  if (specialForms[sym]) { return specialForms[sym](input) }
+  if (specialForms[sym]) { return specialForms[sym](input, GE) }
 
   input = input.trim()
   // const argsArr = getArgs(input).map(arg => evaluator(arg))
-  const argsArr = getArgs(input)
+  const argsArr = getArgs(input, GE)
   /* while (input) {
     input = input.trim()
     if (input[0] === '(') {
@@ -113,16 +115,19 @@ function expressionEval (input, GE) {
   }
   if (atomEval(sym, GE) === null) return null
   // console.log(argsArr)
-  if (typeof GE[sym] !== 'function') { console.log((GE[sym].toString() + ' ' + argsArr + ' ' + sym)) }
-  return GE[sym](argsArr)
+  // if (typeof GE[sym] !== 'function') { console.log((GE[sym].toString() + ' ' + argsArr + ' ' + sym)) }
+
+  if (typeof GE[sym] === 'function') return GE[sym](argsArr)
+
   /* return args.reduce(GE[sym]) */
 }
 function evaluator (expression, GE) {
+  // console.log(GE)
   if (expression[0] === '(') { return expressionEval(expression, GE) }
   return atomEval(expression, GE)
 }
 
-function getArgs (input) {
+function getArgs (input, GE) {
   const argsArr = []
   while (input) {
     input = input.trim()
@@ -140,8 +145,8 @@ function getArgs (input) {
   return argsArr
 }
 
-function ifParser (input) {
-  const condition = evaluator(next(input))
+function ifParser (input, GE) {
+  const condition = evaluator(next(input), GE)
   input = pop(input)
   const trueExp = next(input)
   input = pop(input)
@@ -150,9 +155,9 @@ function ifParser (input) {
   /* if (condition) {
     return trueExp
   } else { return falseExp } */
-  return condition ? evaluator(trueExp) : evaluator(falseExp)
+  return condition ? evaluator(trueExp, GE) : evaluator(falseExp, GE)
 }
-function defineParser (input) {
+function defineParser (input, GE) {
   const variable = next(input)
   input = pop(input)
   const expression = next(input)
@@ -161,12 +166,12 @@ function defineParser (input) {
   console.log(`${variable} defined`)
 }
 
-function lambdaParser (input) {
+function lambdaParser (input, GE) {
   input = input.trim()
   // console.log(input)
   if (input[0] !== '(') { return null }
   let args = next(input)
-  args = args.substring(1, args.length - 1)
+  args = [args.substring(1, args.length - 1)]
   if (args.includes(' ')) { args = args.split(' ') }
 
   // console.log(args)
@@ -175,20 +180,24 @@ function lambdaParser (input) {
   // console.log(exp)
   input = pop(input)
 
-  // const localEnv = Object.create(GE)
-  const localEnv = GE
+  // const localEnv = GE
+  // let localEnv
+  const localEnv = Object.create(GE)
   function lambdaFunc (...funcArgs) {
-    funcArgs.forEach((arg, index) => { localEnv[args[index]] = arg })
-    // console.log(localEnv)
+    // localEnv = GE
+
+    funcArgs.forEach((arg, index) => { localEnv[args] = arg/* [index] */ /* console.log(eval('localEnv[args] = arg[index]')) */ })
+    console.log(localEnv)
+    console.log(funcArgs + ' ' + exp)
     return evaluator(exp, localEnv)
   }
   return lambdaFunc
 }
-function quoteParser (input) {
+function quoteParser (input, GE) {
   const datum = atomEval("\'" + next(input), GE)
   return datum
 }
-function setParser (input) {
+function setParser (input, GE) {
   const symbol = next(input)
   input = pop(input)
   const expression = next(input)
@@ -198,11 +207,14 @@ function setParser (input) {
   // console.log(GE)
   console.log(`${symbol} Set`)
 }
-function beginParser (input) {
-  const argsArr = getArgs(input)
+function beginParser (input, GE) {
+  const argsArr = getArgs(input, GE)
 
   // argsArr.slice(0, argsArr.length - 1).forEach(arg => expressionEval(arg))
   return /* expressionEval( */argsArr[argsArr.length - 1]/* ) */
+}
+function main (input) {
+  return evaluator(input, GE)
 }
 
 /* const input = process.argv[2]
@@ -249,18 +261,22 @@ console.log('Begin')
 console.log(evaluator('(begin (define r 10) (* pi (* r r)))') === 314.1592653589793)
 console.log(evaluator('(begin (define r 10) (* pi (* r r)) (define a 100) (+ a a) 5)') === 5)
  */
-// ____________________________lambda and higher order functions_____________
+/* // ____________________________lambda and higher order functions_____________
 console.log('Lambda')
 console.log(evaluator('((lambda (x) (+ x x)) (* 3 4))', GE) === 24)
 console.log(typeof (evaluator('(lambda (x) (+ x x))', GE)) === 'function')
 
 evaluator('(define x 4)', GE)
-console.log(evaluator('((lambda (y) (+ y x)) 5)', GE) === 9)
+console.log(evaluator('((lambda (y) (+ y x)) 5)', GE) === 9) */
 
 evaluator('(define twice (lambda (x) (* 2 x)))', GE)
-console.log(evaluator('(twice 5)', GE) === 10)
+
+/* console.log(evaluator('(twice 5)', GE) === 10) */
 
 evaluator('(define repeat (lambda (f) (lambda (x) (f (f x)))))', GE)
-console.log(evaluator('(repeat twice)', GE))
-console.log(GE)
-console.log(evaluator('( ( repeat twice ) 10 )', GE) === 40)
+
+console.log(evaluator('((repeat twice) 10)', GE))// === 40)
+/* console.log(evaluator('((lambda (x) x) 10)', GE))
+console.log(evaluator('(define fact (lambda (n) (if (<= n 1) 1 (* n (fact (- n 1))))))', GE))
+console.log(evaluator('(fact 10)', GE))
+console.log(evaluator('((repeat twice) 10)', GE)) //= == 40) */
