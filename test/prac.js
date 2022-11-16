@@ -88,11 +88,12 @@ function expressionEval (input, GE) {
   const sym = next(input)
   input = pop(input)
   // if (symbolEval(sym, GE) === null) return null
+
   if (specialForms[sym]) { return specialForms[sym](input, GE) }
 
   input = input.trim()
-  // const argsArr = getArgs(input).map(arg => evaluator(arg))
-  const argsArr = getArgs(input, GE)
+  const argsArr = getArgs(input).map(arg => evaluator(arg, GE))
+  // const argsArr = getArgs(input, GE)
   /* while (input) {
     input = input.trim()
     if (input[0] === '(') {
@@ -117,8 +118,8 @@ function expressionEval (input, GE) {
   // console.log(argsArr)
   // if (typeof GE[sym] !== 'function') { console.log((GE[sym].toString() + ' ' + argsArr + ' ' + sym)) }
 
-  if (typeof GE[sym] === 'function') return GE[sym](argsArr)
-
+  // if (typeof GE[sym] === 'function') return GE[sym](argsArr)
+  if (GE[sym] !== 'undefined') return GE[sym](argsArr)
   /* return args.reduce(GE[sym]) */
 }
 function evaluator (expression, GE) {
@@ -127,15 +128,15 @@ function evaluator (expression, GE) {
   return atomEval(expression, GE)
 }
 
-function getArgs (input, GE) {
+function getArgs (input) {
   const argsArr = []
   while (input) {
     input = input.trim()
     if (input[0] === '(') {
-      argsArr.push(/* atomEval( */ evaluator(input.substring(0, nextClosingBracket(input) + 1), GE))/* ) */
+      argsArr.push(/* atomEval( evaluator( */input.substring(0, nextClosingBracket(input) + 1)/* , GE */)/* ) ) */
       input = input.substring(nextClosingBracket(input) + 1)
     } else {
-      argsArr.push(atomEval(next(input), GE))
+      argsArr.push(/* atomEval( */next(input)/* , GE) */)
       input = pop(input)
     }
     input = input.trim()
@@ -163,7 +164,7 @@ function defineParser (input, GE) {
   const expression = next(input)
   input = pop(input)
   GE[variable] = evaluator(expression, GE)
-  console.log(`${variable} defined`)
+  return `${variable} defined`
 }
 
 function lambdaParser (input, GE) {
@@ -171,10 +172,11 @@ function lambdaParser (input, GE) {
   // console.log(input)
   if (input[0] !== '(') { return null }
   let args = next(input)
-  args = [args.substring(1, args.length - 1)]
+
+  args = args.substring(1, args.length - 1)
   if (args.includes(' ')) { args = args.split(' ') }
 
-  // console.log(args)
+  console.log(args)
   input = pop(input)
   const exp = next(input)
   // console.log(exp)
@@ -182,10 +184,10 @@ function lambdaParser (input, GE) {
 
   // const localEnv = GE
   // let localEnv
-  const localEnv = Object.create(GE)
+
   function lambdaFunc (...funcArgs) {
     // localEnv = GE
-
+    const localEnv = Object.create(GE)
     funcArgs.forEach((arg, index) => { localEnv[args] = arg/* [index] */ /* console.log(eval('localEnv[args] = arg[index]')) */ })
     console.log(localEnv)
     console.log(funcArgs + ' ' + exp)
@@ -205,10 +207,10 @@ function setParser (input, GE) {
   if (GE[symbol] === undefined) { console.log('can\'t set undefined variable') }
   GE[symbol] = evaluator(expression, GE)
   // console.log(GE)
-  console.log(`${symbol} Set`)
+  return `${symbol} Set`
 }
 function beginParser (input, GE) {
-  const argsArr = getArgs(input, GE)
+  const argsArr = getArgs(input).map(arg => evaluator(arg, GE))
 
   // argsArr.slice(0, argsArr.length - 1).forEach(arg => expressionEval(arg))
   return /* expressionEval( */argsArr[argsArr.length - 1]/* ) */
@@ -220,8 +222,8 @@ function main (input) {
 /* const input = process.argv[2]
 console.log(evaluator(input, GE))
 // console.log(atomEval(input)) */
-
-/* // ______________________________Math Cases_______________________________
+/*
+// ______________________________Math Cases_______________________________
 console.log('Math')
 console.log(evaluator('-5 ', GE) === -5)
 console.log(evaluator('pi', GE) === 3.141592653589793)
@@ -236,42 +238,42 @@ console.log(evaluator('( * 1 2 ( / 10 4 2 ) ( + 6 5 ( - 1 2 3 ) ) ( + 2 3 ) )', 
 
 // _____________________________________if_______________________________
 console.log('If')
-console.log(evaluator('( if (> 30 45) (+ 1 1) "failedOutput")') === '"failedOutput"')
-console.log(evaluator('(if (= 12 12) (+ 78 2) 9)'))
-console.log(evaluator('(if #f 1 0)') === 0)
-console.log(evaluator('(if #t "abc" 1)') === '"abc"')
+console.log(evaluator('( if (> 30 45) (+ 1 1) "failedOutput")', GE) === '"failedOutput"')
+console.log(evaluator('(if (= 12 12) (+ 78 2) 9)', GE) === 80)
+console.log(evaluator('(if #f 1 0)', GE) === 0)
+console.log(evaluator('(if #t "abc" 1)', GE) === '"abc"')
 
 // ____________________________define____________________________________
 console.log('Define')
-console.log(evaluator('(define a 90)'))
-console.log(evaluator('a'))
-console.log(evaluator('(set! a 100)'))
-console.log(evaluator('a'))
+console.log(evaluator('(define a 90)', GE))
+console.log(evaluator('a', GE))
+console.log(evaluator('(set! a 100)', GE))
+console.log(evaluator('a', GE))
 console.log(GE.a)
-console.log(evaluator('(define x (+ 5 5))'))
+console.log(evaluator('(define x (+ 5 5))', GE))
 
 // _____________________________________quote____________________________________
 console.log('Quote')
-console.log(evaluator('(quote (a b c))'))
-console.log(evaluator('(quote (+ 1 2)) '))
+console.log(evaluator('(quote (a b c))', GE))
+console.log(evaluator('(quote (+ 1 2)) ', GE))
 
 // _________________________begin__________________________________________
 
 console.log('Begin')
-console.log(evaluator('(begin (define r 10) (* pi (* r r)))') === 314.1592653589793)
-console.log(evaluator('(begin (define r 10) (* pi (* r r)) (define a 100) (+ a a) 5)') === 5)
- */
-/* // ____________________________lambda and higher order functions_____________
+console.log(evaluator('(begin (define r 10) (* pi (* r r)))', GE) === 314.1592653589793)
+console.log(evaluator('(begin (define r 10) (* pi (* r r)) (define a 100) (+ a a) 5)', GE) === 5) */
+
+// ____________________________lambda and higher order functions_____________
 console.log('Lambda')
 console.log(evaluator('((lambda (x) (+ x x)) (* 3 4))', GE) === 24)
 console.log(typeof (evaluator('(lambda (x) (+ x x))', GE)) === 'function')
 
 evaluator('(define x 4)', GE)
-console.log(evaluator('((lambda (y) (+ y x)) 5)', GE) === 9) */
+console.log(evaluator('((lambda (y) (+ y x)) 5)', GE) === 9)
 
 evaluator('(define twice (lambda (x) (* 2 x)))', GE)
 
-/* console.log(evaluator('(twice 5)', GE) === 10) */
+console.log(evaluator('(twice 5)', GE) === 10)
 
 evaluator('(define repeat (lambda (f) (lambda (x) (f (f x)))))', GE)
 
